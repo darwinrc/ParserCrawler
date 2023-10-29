@@ -29,21 +29,19 @@ func main() {
 	crawlerHandler := handler.NewCrawlerHandler(crawlerService)
 	crawlerHandler.Attach(router)
 
-	wsHandler := handler.NewWsHandler(context.Background(), crawlerService)
+	wsHandler := handler.NewWsHandler(crawlerService)
 	wsHandler.Attach(router)
 
 	// Separate goroutine for consuming the message queue and writing the crawled urls to the websocket connection
-	go wsHandler.ProcessCrawledUrls()
+	go wsHandler.ProcessCrawledUrls(context.Background())
 
 	allowedOrigins := handlers.AllowedOrigins([]string{"*"})
 	allowedMethods := handlers.AllowedMethods([]string{"GET", "POST"})
 	allowedHeaders := handlers.AllowedHeaders([]string{"Content-Type"})
 
-	err := http.ListenAndServe(":5000", handlers.CORS(allowedOrigins, allowedMethods, allowedHeaders)(router))
-	if err != nil {
+	if err := http.ListenAndServe(":5000", handlers.CORS(allowedOrigins, allowedMethods, allowedHeaders)(router)); err != nil {
 		log.Fatal("ListenAndServe", err)
 	}
 
 	log.Println("Parser web crawler server listening on port 5000")
-
 }

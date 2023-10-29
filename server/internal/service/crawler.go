@@ -12,11 +12,9 @@ import (
 	"server/internal/repo"
 )
 
-const UrlNotFound = "url not found in cache"
-
 type CrawlerService interface {
 	Crawl(ctx context.Context, url string) (*model.Response, error)
-	ConsumeFromRequestQueue(ctx context.Context, broadcast chan []byte)
+	ConsumeFromResponseQueue(ctx context.Context, broadcast chan []byte)
 }
 
 type crawlService struct {
@@ -32,10 +30,11 @@ func NewCrawlerService(crawlerRepo repo.CrawlerRepo, amqpClient infra.AMQPClient
 	}
 }
 
-// Crawl ...
-func (s *crawlService) Crawl(ctx context.Context, url string) (*model.Response, error) {
-	log.Printf("Crawling URL: %s...\n", url)
+const UrlNotFound = "url not found in cache"
 
+// Crawl gets the crawled url data from the cache.
+// If there is a cache miss, it publishes the url to the request queue to be processed by the workers
+func (s *crawlService) Crawl(ctx context.Context, url string) (*model.Response, error) {
 	reqId := uuid.New().String()
 
 	data, err := s.CrawlerRepo.GetUrl(ctx, url)
@@ -55,7 +54,7 @@ func (s *crawlService) Crawl(ctx context.Context, url string) (*model.Response, 
 		}, errors.New(UrlNotFound)
 	}
 
-	log.Printf("Data returned from cache: %s...\n", data)
+	log.Printf("data returned from cache: %s...\n", data)
 
 	return &model.Response{
 		Request: model.Request{
@@ -66,9 +65,8 @@ func (s *crawlService) Crawl(ctx context.Context, url string) (*model.Response, 
 	}, nil
 }
 
-// publishToRequestQueue ...
+// publishToRequestQueue publishes the url to the request queue to be processed by the workers
 func (s *crawlService) publishToRequestQueue(url string, reqId string) {
-	log.Println("Publishing url to request queue: ", url)
 	req := model.Request{
 		Url:   url,
 		ReqId: reqId,
@@ -80,27 +78,30 @@ func (s *crawlService) publishToRequestQueue(url string, reqId string) {
 		return
 	}
 
-	err = s.AMQPClient.SetupAMQExchange()
-	if err != nil {
+	if err = s.AMQPClient.SetupAMQExchange(); err != nil {
 		log.Printf("error setting up the amq connection and exchange: %s", err)
+		return
 	}
 
 	if err := s.AMQPClient.PublishAMQMessage(body); err != nil {
 		log.Printf("error publishing to the exchange: %s", err)
+		return
 	}
 
-	log.Printf("URL published: %s\n", body)
+	log.Printf("publishing url to the request queue: %s\n", body)
 }
 
-// ConsumeFromRequestQueue ...
-func (s *crawlService) ConsumeFromRequestQueue(ctx context.Context, broadcast chan []byte) {
+// ConsumeFromResponseQueue consumes messages from the response queue and pushes them to the broadcast channel
+func (s *crawlService) ConsumeFromResponseQueue(ctx context.Context, broadcast chan []byte) {
 	if err := s.AMQPClient.SetupAMQExchange(); err != nil {
 		log.Printf("error setting up the amq connection and exchange: %s", err)
+		return
 	}
 
 	messages, err := s.AMQPClient.ConsumeAMQMessages()
 	if err != nil {
 		log.Printf("error consuming messages: %s", err)
+		return
 	}
 
 	res := &model.Response{}

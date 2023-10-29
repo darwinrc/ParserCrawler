@@ -1,5 +1,6 @@
 <template>
   <div class="container">
+    <h1>Parser Web Crawler</h1>
     <form @click.prevent="onSubmit">
         <input class="url" type="text" v-model="url" placeholder="URL">
         <input class="button" type="submit" value="Crawl URL" @click="crawl">
@@ -12,16 +13,11 @@
 
 <script>
 export default {
-  name: 'App',
   data() {
     return {
-      message: "",
+      result: "",
       socket: null,
-      posts: [],
       url: "https://parserdigital.com/",
-      sessionUser: "",
-      userValid : true,
-      result: ""
     }
   },
   methods: {
@@ -33,43 +29,19 @@ export default {
       }
 
       this.socket.onopen = (evt) => {
-        let msg = {
-          reqId
-          // message: `{"reqId": "${reqId}"}`
-        }
+        let msg = {reqId}
         this.socket.send(JSON.stringify(msg))
       }
     },
 
-    sendMessage() {
-      if(this.message.trim() === "") {
-        return
-      }
-
-      let msg = {
-        userID: this.sessionUser.id,
-        user: {
-          id: this.sessionUser.id,
-          username: this.sessionUser.username,
-        },
-        message: this.message
-      }
-      this.socket.send(JSON.stringify(msg))
-      this.message = ''
-    },
-
     acceptMsg(msg) {
-      this.result += `
-
-      ${msg.data} `
+      this.result = msg.data
     },
 
     async crawl() {
       const res = await fetch(`http://localhost:5000/crawl?url=${this.url}`, {
         method: "GET",
       })
-
-      const status = res.status
 
       if (res.status === 500) {
         this.result = "There was an error trying to crawl the site, please try again later."
@@ -91,11 +63,7 @@ export default {
       }
 
       res.json().then((r) => {
-        console.log("Reading response data: ", r)
-
-
         this.result = r.response
-         // this.instanceSocket()
       }).catch ((e) => {
         console.log(e)
       })

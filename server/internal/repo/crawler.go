@@ -25,7 +25,7 @@ func NewCrawlerRepository(client infra.RedisClient) CrawlerRepo {
 	}
 }
 
-// GetUrl ...
+// GetUrl gets the url data with the key specified by the url
 func (r *crawlerRepository) GetUrl(ctx context.Context, url string) (string, error) {
 	url, err := r.client.Get(ctx, url)
 	if err != nil {
@@ -40,7 +40,7 @@ func (r *crawlerRepository) GetUrl(ctx context.Context, url string) (string, err
 
 }
 
-// StoreUrl...
+// StoreUrl stores the url data with the key specified by the url
 func (r *crawlerRepository) StoreUrl(ctx context.Context, key, value string) error {
 	return r.client.Set(ctx, key, value)
 }

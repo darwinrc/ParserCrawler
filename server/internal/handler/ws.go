@@ -11,26 +11,30 @@ import (
 	"server/internal/service"
 )
 
-type WsHandler struct {
+type WsHandler interface {
+	Attach(r *mux.Router)
+	ProcessCrawledUrls(ctx context.Context)
+}
+
+type wsHandler struct {
 	Service service.CrawlerService
 	Context context.Context
 }
 
 // NewWsHandler builds a handler and injects its dependencies
-func NewWsHandler(ctx context.Context, s service.CrawlerService) *WsHandler {
-	return &WsHandler{
+func NewWsHandler(s service.CrawlerService) WsHandler {
+	return &wsHandler{
 		Service: s,
-		Context: ctx,
 	}
 }
 
-// Attach attaches the crawler endpoints to the router
-func (h *WsHandler) Attach(r *mux.Router) {
-	r.HandleFunc("/ws", h.HandleWebSocketConnection)
+// Attach attaches the websocket endpoint to the router
+func (h *wsHandler) Attach(r *mux.Router) {
+	r.HandleFunc("/ws", h.handleWebSocketConnection)
 }
 
-// HandleWebSocketConnection establishes a web socket connection and reads messages coming through it
-func (h *WsHandler) HandleWebSocketConnection(w http.ResponseWriter, r *http.Request) {
+// handleWebSocketConnection establishes a web socket connection and reads messages coming through it
+func (h *wsHandler) handleWebSocketConnection(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -46,13 +50,11 @@ func (h *WsHandler) HandleWebSocketConnection(w http.ResponseWriter, r *http.Req
 	h.readMessages(conn)
 }
 
-var (
-	broadcast = make(chan []byte)
-	clients   = make(map[*websocket.Conn]string)
-)
+// clients holds the list of websocket connections mapped with the corresponding request id
+var clients = make(map[*websocket.Conn]string)
 
 // readMessages watches for messages coming through the websocket connection
-func (h *WsHandler) readMessages(conn *websocket.Conn) {
+func (h *wsHandler) readMessages(conn *websocket.Conn) {
 	defer conn.Close()
 
 	for {
@@ -72,8 +74,9 @@ func (h *WsHandler) readMessages(conn *websocket.Conn) {
 }
 
 // ProcessCrawledUrls watches for messages in the broadcast channel and send them to the corresponding clients
-func (h *WsHandler) ProcessCrawledUrls() {
-	go h.Service.ConsumeFromRequestQueue(h.Context, broadcast)
+func (h *wsHandler) ProcessCrawledUrls(ctx context.Context) {
+	broadcast := make(chan []byte)
+	go h.Service.ConsumeFromResponseQueue(h.Context, broadcast)
 
 	for {
 		msg := <-broadcast
@@ -89,7 +92,6 @@ func (h *WsHandler) ProcessCrawledUrls() {
 				continue
 			}
 
-			log.Println("Crawling results: ", res.Response)
 			if err := client.WriteMessage(websocket.TextMessage, []byte(res.Response)); err != nil {
 				delete(clients, client)
 				client.Close()
