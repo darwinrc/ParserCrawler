@@ -76,7 +76,7 @@ func (h *wsHandler) readMessages(conn *websocket.Conn) {
 // ProcessCrawledUrls watches for messages in the broadcast channel and send them to the corresponding clients
 func (h *wsHandler) ProcessCrawledUrls(ctx context.Context) {
 	broadcast := make(chan []byte)
-	go h.Service.ConsumeFromResponseQueue(h.Context, broadcast)
+	go h.Service.ConsumeFromResponseQueue(ctx, broadcast)
 
 	for {
 		msg := <-broadcast
