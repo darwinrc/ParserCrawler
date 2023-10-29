@@ -32,6 +32,7 @@ func NewCrawlerService(crawlerRepo repo.CrawlerRepo, amqpClient infra.AMQPClient
 	}
 }
 
+// Crawl ...
 func (s *crawlService) Crawl(ctx context.Context, url string) (*model.Response, error) {
 	log.Printf("Crawling URL: %s...\n", url)
 
@@ -39,22 +40,22 @@ func (s *crawlService) Crawl(ctx context.Context, url string) (*model.Response, 
 
 	data, err := s.CrawlerRepo.GetUrl(ctx, url)
 	if err != nil {
-		if err.Error() == repo.KeyNotFound {
-			go s.publishToRequestQueue(url, reqId)
-
-			return &model.Response{
-				Request: model.Request{
-					ReqId: reqId,
-					Url:   url,
-				},
-				Response: "",
-			}, errors.New(UrlNotFound)
+		if err.Error() != repo.KeyNotFound {
+			return nil, errors.New(fmt.Sprintf("error getting url from cache: %s", err))
 		}
 
-		return nil, errors.New(fmt.Sprintf("error getting url: %s", err))
+		go s.publishToRequestQueue(url, reqId)
+
+		return &model.Response{
+			Request: model.Request{
+				ReqId: reqId,
+				Url:   url,
+			},
+			Response: "",
+		}, errors.New(UrlNotFound)
 	}
 
-	fmt.Printf("Data returned from cache: %s...\n", data)
+	log.Printf("Data returned from cache: %s...\n", data)
 
 	return &model.Response{
 		Request: model.Request{
@@ -65,6 +66,7 @@ func (s *crawlService) Crawl(ctx context.Context, url string) (*model.Response, 
 	}, nil
 }
 
+// publishToRequestQueue ...
 func (s *crawlService) publishToRequestQueue(url string, reqId string) {
 	log.Println("Publishing url to request queue: ", url)
 	req := model.Request{
@@ -90,9 +92,9 @@ func (s *crawlService) publishToRequestQueue(url string, reqId string) {
 	log.Printf("URL published: %s\n", body)
 }
 
+// ConsumeFromRequestQueue ...
 func (s *crawlService) ConsumeFromRequestQueue(ctx context.Context, broadcast chan []byte) {
-	err := s.AMQPClient.SetupAMQExchange()
-	if err != nil {
+	if err := s.AMQPClient.SetupAMQExchange(); err != nil {
 		log.Printf("error setting up the amq connection and exchange: %s", err)
 	}
 
@@ -108,6 +110,8 @@ func (s *crawlService) ConsumeFromRequestQueue(ctx context.Context, broadcast ch
 			log.Printf("error unmarshaling response: %s", err)
 			return
 		}
+
+		// Store the URL in the cache before sending it to the broadcast channel
 		s.CrawlerRepo.StoreUrl(ctx, res.Url, res.Response)
 
 		broadcast <- msg.Body

@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"log"
@@ -45,7 +44,6 @@ func (h *WsHandler) HandleWebSocketConnection(w http.ResponseWriter, r *http.Req
 	}
 
 	h.readMessages(conn)
-
 }
 
 var (
@@ -73,7 +71,7 @@ func (h *WsHandler) readMessages(conn *websocket.Conn) {
 	}
 }
 
-// ProcessCrawledUrls watches for messages in the broadcast channel and send them to connected clients
+// ProcessCrawledUrls watches for messages in the broadcast channel and send them to the corresponding clients
 func (h *WsHandler) ProcessCrawledUrls() {
 	go h.Service.ConsumeFromRequestQueue(h.Context, broadcast)
 
@@ -83,6 +81,7 @@ func (h *WsHandler) ProcessCrawledUrls() {
 		res := &model.Response{}
 		if err := json.Unmarshal(msg, res); err != nil {
 			log.Printf("error unmarshaling response: %s", err)
+			return
 		}
 
 		for client, reqId := range clients {
@@ -90,12 +89,11 @@ func (h *WsHandler) ProcessCrawledUrls() {
 				continue
 			}
 
-			fmt.Println("URL crawled: ", res.Response)
+			log.Println("Crawling results: ", res.Response)
 			if err := client.WriteMessage(websocket.TextMessage, []byte(res.Response)); err != nil {
 				delete(clients, client)
 				client.Close()
 			}
-
 		}
 	}
 }

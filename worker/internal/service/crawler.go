@@ -2,7 +2,6 @@ package service
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 	"worker/internal/infra"
@@ -33,17 +32,20 @@ type Response struct {
 	Response string `json:"response"`
 }
 
+// CrawlURL ...
 func (s *crawlService) CrawlURL() {
-	fmt.Println("Crawling URL...")
+	log.Println("Crawling URL...")
 
 	err := s.AMQPClient.SetupAMQExchange()
 	if err != nil {
 		log.Printf("error setting up the amq connection and exchange: %s", err)
+		return
 	}
 
 	messages, err := s.AMQPClient.ConsumeAMQMessages()
 	if err != nil {
 		log.Printf("error consuming messages: %s", err)
+		return
 	}
 
 	for msg := range messages {
@@ -60,8 +62,6 @@ func (s *crawlService) CrawlURL() {
 				ReqId: req.ReqId,
 				Url:   req.Url,
 			},
-			//ReqId:    req.ReqId,
-			//Url:      req.Url,
 			Response: data,
 		}
 
@@ -73,6 +73,7 @@ func (s *crawlService) CrawlURL() {
 
 		if err := s.AMQPClient.PublishAMQMessage(body); err != nil {
 			log.Printf("error publishing to the exchange: %s", err)
+			return
 		}
 
 		log.Printf("Published to the exchange: %#v", string(body))
@@ -80,6 +81,7 @@ func (s *crawlService) CrawlURL() {
 
 }
 
+// crawl ...
 func (s *crawlService) crawl(url string) string {
 	log.Printf("About to crawl url: %#v\n", url)
 
@@ -107,14 +109,14 @@ func (s *crawlService) crawl(url string) string {
 //func getDelay(urlStr, robotsFile string) int {
 //	resp, err := http.Get(fmt.Sprintf("%s%s", urlStr, robotsFile))
 //	if err != nil {
-//		fmt.Println("Error:", err)
+//		log.Println("Error:", err)
 //		return 0
 //	}
 //	defer resp.Body.Close()
 //
 //	body, err := io.ReadAll(resp.Body)
 //	if err != nil {
-//		fmt.Println("Error:", err)
+//		log.Println("Error:", err)
 //		return 0
 //	}
 //
@@ -127,7 +129,7 @@ func (s *crawlService) crawl(url string) string {
 //
 //		delay, err := strconv.Atoi(strings.TrimSpace(parts[1]))
 //		if err != nil {
-//			fmt.Println("Error:", err)
+//			log.Println("Error:", err)
 //			return 0
 //		}
 //
@@ -155,7 +157,7 @@ func (s *crawlService) crawl(url string) string {
 //	// Make an HTTP request to the URL
 //	resp, err := http.Get(urlStr)
 //	if err != nil {
-//		fmt.Println("Error:", err)
+//		log.Println("Error:", err)
 //		return
 //	}
 //	defer resp.Body.Close()
@@ -163,12 +165,12 @@ func (s *crawlService) crawl(url string) string {
 //	// Parse the HTML content using goquery
 //	doc, err := goquery.NewDocumentFromReader(resp.Body)
 //	if err != nil {
-//		fmt.Println("Error parsing document:", err)
+//		log.Println("Error parsing document:", err)
 //		return
 //	}
 //
 //	// Extract and print links on the current page
-//	fmt.Println("Visited URL:", urlStr)
+//	log.Println("Visited URL:", urlStr)
 //	doc.Find("a").Each(func(index int, element *goquery.Selection) {
 //		href, exists := element.Attr("href")
 //		if exists {
@@ -180,7 +182,7 @@ func (s *crawlService) crawl(url string) string {
 //
 //				// Ensure the link belongs to the same subdomain
 //				if strings.Contains(link, targetSubdomain) && link != urlStr {
-//					fmt.Println("Found link:", link)
+//					log.Println("Found link:", link)
 //				}
 //			}
 //		}

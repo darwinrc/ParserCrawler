@@ -31,6 +31,7 @@ func NewRedisClient() RedisClient {
 	}
 }
 
+// Set ...
 func (c *redisClient) Set(ctx context.Context, key, value string) error {
 	if err := c.client.Set(ctx, key, value, 0).Err(); err != nil {
 		return errors.New(fmt.Sprintf("error storing value in Redis: %s", err))
@@ -39,6 +40,7 @@ func (c *redisClient) Set(ctx context.Context, key, value string) error {
 	return nil
 }
 
+// Get ...
 func (c *redisClient) Get(ctx context.Context, key string) (string, error) {
 	value, err := c.client.Get(ctx, key).Result()
 	if err == redis.Nil {

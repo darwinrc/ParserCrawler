@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -45,6 +44,6 @@ func main() {
 		log.Fatal("ListenAndServe", err)
 	}
 
-	fmt.Println("Parser web crawler server listening on port 5000")
+	log.Println("Parser web crawler server listening on port 5000")
 
 }

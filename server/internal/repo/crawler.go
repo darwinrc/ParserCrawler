@@ -25,6 +25,7 @@ func NewCrawlerRepository(client infra.RedisClient) CrawlerRepo {
 	}
 }
 
+// GetUrl ...
 func (r *crawlerRepository) GetUrl(ctx context.Context, url string) (string, error) {
 	url, err := r.client.Get(ctx, url)
 	if err != nil {
@@ -39,6 +40,7 @@ func (r *crawlerRepository) GetUrl(ctx context.Context, url string) (string, err
 
 }
 
+// StoreUrl...
 func (r *crawlerRepository) StoreUrl(ctx context.Context, key, value string) error {
 	return r.client.Set(ctx, key, value)
 }
