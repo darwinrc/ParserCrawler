@@ -5,11 +5,11 @@ type Request struct {
 	Url   string `json:"url,omitempty"`
 }
 
-type Response struct {
-	Request
-	Response Sitemap `json:"response"`
-}
-
 type Sitemap struct {
 	Pages map[string][]string `json:"pages"`
+}
+
+type Response struct {
+	Request
+	Sitemap
 }

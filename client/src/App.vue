@@ -37,9 +37,9 @@ export default {
 
       this.socket.onmessage = (evt) => {
 
-          const jsonData = JSON.parse(evt.data);
+          const jsonData = JSON.parse(evt.data)
           this.result = "Crawling results..."
-          this.pages = jsonData.response.pages
+          this.pages = jsonData.pages
       }
 
       this.socket.onopen = (evt) => {
@@ -76,7 +76,8 @@ export default {
       }
 
       res.json().then((r) => {
-        this.result = r.response
+        this.result = "Crawling results..."
+        this.pages = r.pages
       }).catch ((e) => {
         console.log(e)
       })

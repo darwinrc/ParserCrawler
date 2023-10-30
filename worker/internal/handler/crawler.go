@@ -56,7 +56,7 @@ func (h *crawlHandler) Process() {
 				ReqId: req.ReqId,
 				Url:   req.Url,
 			},
-			Response: *data,
+			Sitemap: *data,
 		}
 
 		body, err := json.Marshal(res)
