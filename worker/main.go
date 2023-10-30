@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/joho/godotenv"
 	"log"
+	"worker/internal/handler"
 	"worker/internal/infra"
 	"worker/internal/service"
 )
@@ -13,7 +14,7 @@ func main() {
 	}
 
 	amqpClient := infra.NewAMQPClient()
-
-	crawlerService := service.NewCrawlerService(amqpClient)
-	crawlerService.CrawlURL()
+	crawlerService := service.NewCrawlerService()
+	crawlerHandler := handler.NewCrawlerHandler(amqpClient, crawlerService)
+	crawlerHandler.Process()
 }

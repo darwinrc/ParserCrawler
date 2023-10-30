@@ -7,8 +7,7 @@ type Request struct {
 
 type Response struct {
 	Request
-	Status string `json:"status"`
-	Sitemap
+	Response Sitemap `json:"response"`
 }
 
 type Sitemap struct {

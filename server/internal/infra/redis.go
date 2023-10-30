@@ -32,7 +32,7 @@ func NewRedisClient() RedisClient {
 }
 
 // Set sets a redis key
-func (c *redisClient) Set(ctx context.Context, key, value string) error {
+func (c *redisClient) Set(ctx context.Context, key string, value string) error {
 	if err := c.client.Set(ctx, key, value, 0).Err(); err != nil {
 		return errors.New(fmt.Sprintf("error storing value in Redis: %s", err))
 	}

@@ -7,6 +7,16 @@
     </form>
     <div class="results">
       {{ result }}
+      <ul>
+        <li v-for="(value, key) in pages" :key="key">
+          {{ key }}
+          <ul>
+            <li v-for="v in value">
+              {{ v }}
+            </li>
+            </ul>
+        </li>
+      </ul>
     </div>
   </div>
 </template>
@@ -15,6 +25,7 @@
 export default {
   data() {
     return {
+      pages: null,
       result: "",
       socket: null,
       url: "https://parserdigital.com/",
@@ -24,18 +35,17 @@ export default {
     instanceSocket(reqId) {
       this.socket = new WebSocket("ws://localhost:5000/ws")
 
-      this.socket.onmessage = (msg) => {
-        this.acceptMsg(msg)
+      this.socket.onmessage = (evt) => {
+
+          const jsonData = JSON.parse(evt.data);
+          this.result = "Crawling results..."
+          this.pages = jsonData.response.pages
       }
 
       this.socket.onopen = (evt) => {
         let msg = {reqId}
         this.socket.send(JSON.stringify(msg))
       }
-    },
-
-    acceptMsg(msg) {
-      this.result = msg.data
     },
 
     async crawl() {
@@ -45,11 +55,13 @@ export default {
 
       if (res.status === 500) {
         this.result = "There was an error trying to crawl the site, please try again later."
+        this.pages = null
         return
       }
 
       if (res.status === 202) {
-        this.result = "The URL is being crawled. Please wait for the result..."
+        this.result = "The URL is being crawled. Please wait for the results..."
+        this.pages = null
         res.json().then((r) => {
           this.instanceSocket(r.reqId)
         })
@@ -58,6 +70,7 @@ export default {
       }
 
       if (res.status !== 200) {
+        this.pages = null
         this.result = "Unknown response from the server, please try again later."
         return
       }
@@ -87,6 +100,7 @@ export default {
   width: 666px;
   height: 333px;
   border: black 1px solid;
+  overflow-y: scroll;
 }
 
 .button {

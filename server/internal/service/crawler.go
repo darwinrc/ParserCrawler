@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	"log"
 	"server/internal/infra"
@@ -37,32 +36,41 @@ const UrlNotFound = "url not found in cache"
 func (s *crawlService) Crawl(ctx context.Context, url string) (*model.Response, error) {
 	reqId := uuid.New().String()
 
-	data, err := s.CrawlerRepo.GetUrl(ctx, url)
-	if err != nil {
-		if err.Error() != repo.KeyNotFound {
-			return nil, errors.New(fmt.Sprintf("error getting url from cache: %s", err))
-		}
+	//data, err := s.CrawlerRepo.GetUrl(ctx, url)
+	//if err != nil {
+	//	if err.Error() != repo.KeyNotFound {
+	//		return nil, errors.New(fmt.Sprintf("error getting url from cache: %s", err))
+	//	}
+	//
+	//	go s.publishToRequestQueue(url, reqId)
+	//
+	//	return &model.Response{
+	//		Request: model.Request{
+	//			ReqId: reqId,
+	//			Url:   url,
+	//		},
+	//		Status: "accepted for async processing",
+	//	}, errors.New(UrlNotFound)
+	//}
 
-		go s.publishToRequestQueue(url, reqId)
-
-		return &model.Response{
-			Request: model.Request{
-				ReqId: reqId,
-				Url:   url,
-			},
-			Response: "",
-		}, errors.New(UrlNotFound)
-	}
-
-	log.Printf("data returned from cache: %s...\n", data)
-
+	go s.publishToRequestQueue(url, reqId)
 	return &model.Response{
 		Request: model.Request{
 			ReqId: reqId,
 			Url:   url,
 		},
-		Response: data,
-	}, nil
+		Status: "accepted for async processing",
+	}, errors.New(UrlNotFound)
+
+	//log.Printf("data returned from cache: %s...\n", data)
+	//
+	//return &model.Response{
+	//	Request: model.Request{
+	//		ReqId: reqId,
+	//		Url:   url,
+	//	},
+	//	Response: data,
+	//}, nil
 }
 
 // publishToRequestQueue publishes the url to the request queue to be processed by the workers
@@ -113,7 +121,7 @@ func (s *crawlService) ConsumeFromResponseQueue(ctx context.Context, broadcast c
 		}
 
 		// Store the URL in the cache before sending it to the broadcast channel
-		s.CrawlerRepo.StoreUrl(ctx, res.Url, res.Response)
+		s.CrawlerRepo.StoreUrl(ctx, res.Url, string(msg.Body))
 
 		broadcast <- msg.Body
 	}

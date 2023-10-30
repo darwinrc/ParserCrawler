@@ -37,10 +37,9 @@ func (h *crawlerHandler) handleCrawl(w http.ResponseWriter, r *http.Request) {
 	res, err := h.Service.Crawl(r.Context(), url)
 	if err != nil {
 		if err.Error() == service.UrlNotFound {
-			res.Response = "accepted for async processing"
 			w.WriteHeader(http.StatusAccepted)
 		} else {
-			res.Response = err.Error()
+			res.Status = err.Error()
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 	} else {

@@ -92,7 +92,7 @@ func (h *wsHandler) ProcessCrawledUrls(ctx context.Context) {
 				continue
 			}
 
-			if err := client.WriteMessage(websocket.TextMessage, []byte(res.Response)); err != nil {
+			if err := client.WriteMessage(websocket.TextMessage, msg); err != nil {
 				delete(clients, client)
 				client.Close()
 			}
