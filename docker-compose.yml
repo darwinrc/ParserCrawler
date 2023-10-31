@@ -3,7 +3,15 @@ version: "3.5"
 services:
   redis:
     image: redis
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_HOST: ${REDIS_HOST:-redis:6379}
     restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
+      interval: 1s
+      timeout: 3s
+      retries: 5
     ports:
     - '6379:6379'
     command: redis-server --save 20 1 --loglevel warning
@@ -25,31 +33,31 @@ services:
       - "5672:5672"
       - "15672:15672"
 
-#  srv:
-#    build:
-#      context: ./server
-#    restart: on-failure
-#    depends_on:
-#      postgres:
-#        condition: service_healthy
-#      rabbitmq:
-#        condition: service_healthy
-#    ports:
-#      - "5000:5000"
-#
-#  worker:
-#    build:
-#      context: ./bot
-#    restart: on-failure
-#    depends_on:
-#      rabbitmq:
-#        condition: service_healthy
-#
-#  vue:
-#    build:
-#      context: ./client
-#    ports:
-#      - "3000:3000"
+  srv:
+    build:
+      context: ./server
+    restart: on-failure
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+
+  worker:
+    build:
+      context: ./worker
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  vue:
+    build:
+      context: ./client
+    ports:
+      - "3000:3000"
 volumes:
   redis:
     driver: local
