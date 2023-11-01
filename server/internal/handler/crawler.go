@@ -5,11 +5,13 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"server/internal/model"
 	"server/internal/service"
 )
 
 type CrawlerHandler interface {
 	Attach(r *mux.Router)
+	HandleCrawl(w http.ResponseWriter, r *http.Request)
 }
 
 type crawlerHandler struct {
@@ -25,11 +27,11 @@ func NewCrawlerHandler(s service.CrawlerService) CrawlerHandler {
 
 // Attach attaches the crawler endpoints to the router
 func (h *crawlerHandler) Attach(r *mux.Router) {
-	r.HandleFunc("/crawl", h.handleCrawl).Methods("GET", "OPTIONS")
+	r.HandleFunc("/crawl", h.HandleCrawl).Methods("GET", "OPTIONS")
 }
 
-// handleCrawl exposes the API to crawl a website
-func (h *crawlerHandler) handleCrawl(w http.ResponseWriter, r *http.Request) {
+// HandleCrawl exposes the API to crawl a website
+func (h *crawlerHandler) HandleCrawl(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	url := r.URL.Query().Get("url")
@@ -37,9 +39,14 @@ func (h *crawlerHandler) handleCrawl(w http.ResponseWriter, r *http.Request) {
 	res, err := h.Service.Crawl(r.Context(), url)
 	if err != nil {
 		if err.Error() == service.UrlNotFound {
+			res = &model.Response{
+				Status: "accepted",
+			}
 			w.WriteHeader(http.StatusAccepted)
 		} else {
-			res.Status = err.Error()
+			res = &model.Response{
+				Status: "error",
+			}
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 	} else {

@@ -5,6 +5,7 @@
 package mock_handler
 
 import (
+	http "net/http"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -44,4 +45,16 @@ func (m *MockCrawlerHandler) Attach(r *mux.Router) {
 func (mr *MockCrawlerHandlerMockRecorder) Attach(r interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Attach", reflect.TypeOf((*MockCrawlerHandler)(nil).Attach), r)
+}
+
+// HandleCrawl mocks base method.
+func (m *MockCrawlerHandler) HandleCrawl(w http.ResponseWriter, r *http.Request) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "HandleCrawl", w, r)
+}
+
+// HandleCrawl indicates an expected call of HandleCrawl.
+func (mr *MockCrawlerHandlerMockRecorder) HandleCrawl(w, r interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleCrawl", reflect.TypeOf((*MockCrawlerHandler)(nil).HandleCrawl), w, r)
 }

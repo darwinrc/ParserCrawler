@@ -13,7 +13,12 @@ import (
 
 type WsHandler interface {
 	Attach(r *mux.Router)
+	HandleWebSocketConnection(w http.ResponseWriter, r *http.Request)
 	ProcessCrawledUrls(ctx context.Context)
+}
+
+type Upgrader interface {
+	Upgrade(w http.ResponseWriter, r *http.Request, responseHeader http.Header) (*websocket.Conn, error)
 }
 
 type wsHandler struct {
@@ -30,11 +35,11 @@ func NewWsHandler(s service.CrawlerService) WsHandler {
 
 // Attach attaches the websocket endpoint to the router
 func (h *wsHandler) Attach(r *mux.Router) {
-	r.HandleFunc("/ws", h.handleWebSocketConnection)
+	r.HandleFunc("/ws", h.HandleWebSocketConnection)
 }
 
-// handleWebSocketConnection establishes a web socket connection and reads messages coming through it
-func (h *wsHandler) handleWebSocketConnection(w http.ResponseWriter, r *http.Request) {
+// HandleWebSocketConnection establishes a web socket connection and reads messages coming through it
+func (h *wsHandler) HandleWebSocketConnection(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true

@@ -3,26 +3,14 @@ package service
 import (
 	"github.com/stretchr/testify/assert"
 	"testing"
-	mock_handler "worker/internal/handler/mocks"
 	"worker/internal/model"
+	mock_service "worker/internal/service/mocks"
 )
 
 func TestCrawlService_Crawl_Success(t *testing.T) {
 	url := "https://parserdigital.com/"
-	mockHttp := mock_handler.NewHttpMock(url)
+	mockHttp := mock_service.NewHttpMock(url)
 	mockHttp.RegisterResponders()
-
-	mockSitemap := &model.Sitemap{
-		Pages: make(map[string][]string),
-	}
-
-	service := &crawlService{
-		visitedURLs: make(map[string]bool),
-		sitemap:     mockSitemap,
-	}
-
-	//url := mockHttpServer.MockServer.URL
-	sitemap := service.Crawl(url)
 
 	expected := &model.Sitemap{
 		Pages: map[string][]string{
@@ -54,6 +42,17 @@ func TestCrawlService_Crawl_Success(t *testing.T) {
 			url + "apply":   []string(nil),
 		},
 	}
+
+	mockSitemap := &model.Sitemap{
+		Pages: make(map[string][]string),
+	}
+
+	service := &crawlService{
+		visitedURLs: make(map[string]bool),
+		sitemap:     mockSitemap,
+	}
+
+	sitemap := service.Crawl(url)
 
 	assert.Equal(t, sitemap, expected)
 

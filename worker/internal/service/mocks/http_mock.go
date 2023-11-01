@@ -1,4 +1,4 @@
-package mock_handler
+package mock_service
 
 import (
 	"fmt"
