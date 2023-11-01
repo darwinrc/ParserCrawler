@@ -1,10 +1,14 @@
 package handler
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"github.com/golang/mock/gomock"
+	"log"
 	"testing"
-	"time"
 	mock_infra "worker/internal/infra/mocks"
+	"worker/internal/model"
 	mock_service "worker/internal/service/mocks"
 )
 
@@ -16,29 +20,67 @@ func TestCrawlHandler_Process(t *testing.T) {
 	mockCrawlerService := mock_service.NewMockCrawlerService(ctrl)
 
 	handler := NewCrawlerHandler(mockAMQPClient, mockCrawlerService)
-
-	// Create a channel to signal when the goroutine has finished
-	done := make(chan struct{})
-
-	// Set up expectations for AMQPClient methods
-	mockAMQPClient.EXPECT().SetupAMQExchange().Return(nil)
-	mockAMQPClient.EXPECT().ConsumeAMQMessages().Return(nil, nil).AnyTimes()
-	mockAMQPClient.EXPECT().PublishAMQMessage(gomock.Any()).Return(nil).AnyTimes()
-
-	// Set up expectations for CrawlerService methods
-	mockCrawlerService.EXPECT().Crawl(gomock.Any()).Return(nil)
-
-	// Start the Process method in a goroutine
-	go func() {
-		defer close(done)
-		handler.Process()
-	}()
-
-	// Wait for the goroutine to finish or for a timeout
-	select {
-	case <-done:
-		// Goroutine finished
-	case <-time.After(5 * time.Second): // Adjust the timeout as needed
-		t.Error("Timed out waiting for the goroutine to finish")
+	url := "https://parserdigital.com/"
+	data := &model.Sitemap{
+		Pages: map[string][]string{
+			url: {
+				url + "how-we-work",
+				url + "career",
+				url + "contact-us",
+			},
+			url + "how-we-work": {
+				url + "cases",
+				url + "people",
+				url + "",
+			},
+			url + "career": {
+				url + "apply",
+				url + "visit",
+				url + "",
+			},
+			url + "contact-us": {
+				url + "address",
+				url + "form",
+				url + "",
+			},
+			url + "people":  []string(nil),
+			url + "cases":   []string(nil),
+			url + "form":    []string(nil),
+			url + "address": []string(nil),
+			url + "visit":   []string(nil),
+			url + "apply":   []string(nil),
+		},
 	}
+	req := &model.Request{
+		ReqId: "req-id",
+		Url:   "https://parserdigital.com/",
+	}
+	res := &model.Response{
+		Request: model.Request{
+			ReqId: req.ReqId,
+			Url:   req.Url,
+		},
+		Sitemap: *data,
+	}
+
+	body, _ := json.Marshal(res)
+
+	go func() {
+		mockCrawlerService.EXPECT().Crawl(gomock.Any()).Return(data)
+
+		mockAMQPClient.EXPECT().SetupAMQExchange().Return(nil)
+		mockAMQPClient.EXPECT().ConsumeAMQMessages().Return(nil, nil).AnyTimes()
+		mockAMQPClient.EXPECT().PublishAMQMessage(body).Return(nil).AnyTimes()
+
+		var logOutput bytes.Buffer
+		log.SetOutput(&logOutput)
+
+		handler.Process()
+
+		logMsg := logOutput.String()
+		expectedLog := fmt.Sprintf("published to the exchange: %v", string(body))
+		if logMsg != expectedLog {
+			t.Errorf("Expected log message: %s, got: %s", expectedLog, logMsg)
+		}
+	}()
 }
