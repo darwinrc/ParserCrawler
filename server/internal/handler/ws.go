@@ -17,10 +17,6 @@ type WsHandler interface {
 	ProcessCrawledUrls(ctx context.Context)
 }
 
-type Upgrader interface {
-	Upgrade(w http.ResponseWriter, r *http.Request, responseHeader http.Header) (*websocket.Conn, error)
-}
-
 type wsHandler struct {
 	Service service.CrawlerService
 	Context context.Context
